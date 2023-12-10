@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Raad je plaatje</title>
+  </head>
+  <body>
+    <h1>Raad je plaatje</h1>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+    <script>
+      window.onSpotifyWebPlaybackSDKReady = () => {
+        const token = 'BQCNgOfKPhN9CjSSsCC73obmlNLyVNd6IPkdM5_NAw6VEuYocleMY6Rg8SONmIJxIWrRmXHC3jDeFyTokbDTN4xoWeJRwKFSx8PbgHk1gl3dKecCg7b2lUEczM4O6Ycg53a6TffNRGhixrUGjkbmFmoZKhpZjFFmQIMsi8pSAvxiZhH';
+        const player = new Spotify.Player({
+          name: 'Raad je plaatje',
+          getOAuthToken: cb => { cb(token); },
+        });
+
+        player.addListener('ready', ({ device_id }) => {
+          console.log('Ready with device ID', device_id);
+        });
+
+        player.connect();
+      }
+    </script>
+  </body>
+</html>
