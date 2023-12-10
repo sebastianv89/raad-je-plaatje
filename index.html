@@ -5,6 +5,7 @@
   </head>
   <body>
     <h1>Raad je plaatje</h1>
+    <button id="togglePlay">Toggle play</button>
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <script>
       window.onSpotifyWebPlaybackSDKReady = () => {
@@ -17,6 +18,10 @@
         player.addListener('ready', ({ device_id }) => {
           console.log('Ready with device ID', device_id);
         });
+
+        document.getElementById('togglePlay').onclick = function() {
+          player.togglePlay();
+        };
 
         player.connect();
       }
