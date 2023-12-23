@@ -75,7 +75,6 @@ async function newToken(code) {
     const url = new URL(window.location.href);
     const response = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
-        mode: 'cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
             client_id: CLIENT_ID,
@@ -94,7 +93,6 @@ async function newToken(code) {
 async function refreshToken() {
     const response = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
-        mode: 'cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
             client_id: CLIENT_ID,
@@ -121,7 +119,6 @@ async function playTrack(trackId) {
     console.log('playTrack', trackId);
     const response = await callApi('https://api.spotify.com/v1/me/player/play', {
         method: 'PUT',
-        mode: 'cors',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${currentToken.accessToken}`,
@@ -208,7 +205,6 @@ function initPlayer() {
         // transfer playback to current device
         await callApi('https://api.spotify.com/v1/me/player', {
             method: 'PUT',
-            mode: 'cors',
             headers: {
                 'Authorization': `Bearer ${currentToken.accessToken}`,
                 'Content-Type': 'application/json',
