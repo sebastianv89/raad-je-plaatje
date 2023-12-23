@@ -157,7 +157,9 @@ async function scan() {
 async function startScan() {
     console.log('startScan');
     showScreen('scan');
-    navigator.mediaDevices.getUserMedia({ video: true, facingMode: 'environment' })
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    console.log('devices:', devices);
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
         .then((stream) => {
             video.srcObject = stream;
             video.addEventListener('canplay', () => {
