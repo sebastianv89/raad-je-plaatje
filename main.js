@@ -226,7 +226,7 @@ function initPlayer() {
     });
     window.player.connect();
     window.removeEventListener('gotToken', initPlayer);
-    startScan();
+    showScreen('play');
 }
 
 window.onSpotifyWebPlaybackSDKReady = () => {
