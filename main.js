@@ -1,39 +1,93 @@
 const CLIENT_ID = 'e23eaf2e6b4f416b98d71c64d3bfa899'; 
 
 const gotTokenEvent = new Event('gotToken');
-const video = document.createElement('video');
-const canvasElement = document.getElementById('playback');
+const video = document.getElementById('playback');
+const canvasElement = document.createElement('canvas');
 const canvas = canvasElement.getContext('2d', {
     willReadFrequently: true,
 });
 const loginScreen = document.getElementById('loginScreen');
+const startScreen = document.getElementById('startScreen');
 const scanScreen = document.getElementById('scanScreen');
 const playScreen = document.getElementById('playScreen');
+const debugArea = document.getElementById('debugArea');
+const deviceList = document.getElementById('device');
 let animationRequest = null;
-
-// Data structure for managing tokens
-const currentToken = {
-    get accessToken() { return localStorage.getItem('accessToken') || null; },
-    get refreshToken() { return localStorage.getItem('refreshToken') || null; },
-    save: (response) => {
-        const { access_token, refresh_token } = response;
-        localStorage.setItem('accessToken', access_token);
-        localStorage.setItem('refreshToken', refresh_token);
-        window.dispatchEvent(gotTokenEvent);
-    }
-};
 
 function showScreen(name) {
     loginScreen.style.display = 'none';
+    startScreen.style.display = 'none';
     scanScreen.style.display = 'none';
     playScreen.style.display = 'none';
-    if (name === 'scan') {
+    if (name === 'start') {
+        startScreen.style.display = 'flex';
+    } else if (name === 'scan') {
         scanScreen.style.display = 'flex';
     } else if (name === 'play') {
         playScreen.style.display = 'flex';
     } else {
         loginScreen.style.display = 'flex';
     }
+}
+
+// Data structure for managing tokens
+const currentToken = {
+    get accessToken() { return localStorage.getItem('accessToken') || null; },
+    get refreshToken() { return localStorage.getItem('refreshToken') || null; },
+    get expires() {
+        const timestamp = localStorage.getItem('expires');
+        if (!timestamp) {
+            return null;
+        } else {
+            return new Date(Number(timestamp));
+        }
+    },
+    save: (response) => {
+        const { access_token, refresh_token, expires_in } = response;
+        const expires = new Date(Date.now() + 1000 * (expires_in - 10));
+        localStorage.setItem('accessToken', access_token);
+        localStorage.setItem('refreshToken', refresh_token);
+        localStorage.setItem('expires', expires.valueOf());
+        window.dispatchEvent(gotTokenEvent);
+    }
+};
+
+async function newToken(code) {
+    const codeVerifier = localStorage.getItem('codeVerifier');
+    const url = new URL(window.location.href);
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            client_id: CLIENT_ID,
+            grant_type: 'authorization_code',
+            code: code,
+            redirect_uri: url.origin + url.pathname,
+            code_verifier: codeVerifier,
+        }),
+    });
+    if (response.status !== 200) {
+        console.error(response, await response.text());
+        throw Error('error fetching initial token');
+    }
+    currentToken.save(await response.json());
+}
+
+async function refreshToken() {
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            client_id: CLIENT_ID,
+            grant_type: 'refresh_token',
+            refresh_token: localStorage.getItem('refreshToken'),
+        }),
+    });
+    if (response.status !== 200) {
+        console.error(response, await response.text());
+        throw Error('error refreshing token');
+    }
+    currentToken.save(await response.json());
 }
 
 function getCodeVerifier() {
@@ -63,47 +117,11 @@ async function authorize() {
         client_id: CLIENT_ID,
         response_type: 'code',
         redirect_uri: url.origin + url.pathname,
-        scope: 'streaming user-read-email user-read-private user-modify-playback-state',
+        scope: 'user-read-playback-state user-modify-playback-state',
         code_challenge_method: 'S256',
         code_challenge: code_challenge,
     }).toString();
     window.location.href = authUrl.toString();
-}
-
-async function newToken(code) {
-    const codeVerifier = localStorage.getItem('codeVerifier');
-    const url = new URL(window.location.href);
-    const response = await fetch('https://accounts.spotify.com/api/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-            client_id: CLIENT_ID,
-            grant_type: 'authorization_code',
-            code: code,
-            redirect_uri: url.origin + url.pathname,
-            code_verifier: codeVerifier,
-        }),
-    });
-    if (response.status !== 200) {
-        throw Error('error fetching initial token');
-    }
-    currentToken.save(await response.json());
-}
-
-async function refreshToken() {
-    const response = await fetch('https://accounts.spotify.com/api/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-            client_id: CLIENT_ID,
-            grant_type: 'refresh_token',
-            refresh_token: localStorage.getItem('refreshToken'),
-        }),
-    });
-    if (response.status !== 200) {
-        throw Error('error refreshing token');
-    }
-    currentToken.save(await response.json());
 }
 
 async function callApi(url, obj) {
@@ -129,10 +147,16 @@ async function playTrack(trackId) {
         }),
     });
     console.log('playTrack:', response);
+    if (response.ok) {
+        document.getElementById('playBtn').hidden = true;
+        document.getElementById('pauseBtn').hidden = false;
+        document.getElementById('scanBtn').classList.add('animatedPlay');
+    }
     return response.ok;
 }
 
 async function scan() {
+    console.log('scan');
     if (video.readyState >= 2) {
         // TODO: keep video aspect ratio
         canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
@@ -143,9 +167,8 @@ async function scan() {
         if (code && code.data !== '') {
             const gotTrack = await playTrack(code.data);
             if (gotTrack) {
-                console.log('gotTrack, stopping scan');
-                play();
-                stopScan();
+                console.log('got valid track, stopping scan');
+                pauseScan();
                 return;
             }
             console.log('continuing?');
@@ -154,18 +177,16 @@ async function scan() {
     animationRequest = requestAnimationFrame(scan);
 }
 
-async function startScan() {
-    console.log('startScan');
+async function initScan() {
+    console.log('initScan');
     showScreen('scan');
     const devices = await navigator.mediaDevices.enumerateDevices();
     console.log('devices:', devices);
+    // TODO: video is very(!) blocky, ugly, and hinders scanning accuracy
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
         .then((stream) => {
             video.srcObject = stream;
-            video.addEventListener('canplay', () => {
-                video.play();
-                requestAnimationFrame(scan);
-            });
+            video.addEventListener('canplay', startScan);
         })
         .catch((err) => {
             console.error(err);
@@ -173,78 +194,147 @@ async function startScan() {
         });
 }
 
-function stopScan() {
-    console.log('stopScan');
+async function startScan() {
+    console.log('startScan');
+    canvasElement.width = video.videoWidth;
+    canvasElement.height = video.videoHeight;
+    await video.play();
+    requestAnimationFrame(scan);
+    video.removeEventListener('canplay', startScan);
+}
+
+async function resumeScan() {
+    console.log('resumeScan');
+    if (!video.srcObject) {
+        await initScan();
+    } else {
+        startScan();
+    }
+    showScreen('scan');
+}
+
+function pauseScan() {
+    console.log('pauseScan');
     cancelAnimationFrame(animationRequest);
     animationRequest = null;
     showScreen('play');
 }
 
-function play() {
-    document.getElementById('play').hidden = true;
-    document.getElementById('pause').hidden = false;
-    document.getElementById('scan').classList.add('animatedPlay');
-    window.player.resume();
-}
-
-function pause() {
-    document.getElementById('play').hidden = false;
-    document.getElementById('pause').hidden = true;
-    document.getElementById('scan').classList.remove('animatedPlay');
-    window.player.pause();
-}
-
-function initPlayer() {
-    console.log('initPlayer');
-    showScreen('scan');
-    console.assert(currentToken.accessToken !== null);
-    window.player = new Spotify.Player({
-        name: 'Raad je plaatje',
-        getOAuthToken: cb => { cb(currentToken.accessToken); }
+async function isPlaying() {
+    const response = await callApi('https://api.spotify.com/v1/me/player', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${currentToken.accessToken}` },
     });
-    window.player.addListener('ready', async function ({ device_id }) {
-        console.log('player ready', device_id);
-        // transfer playback to current device
-        await callApi('https://api.spotify.com/v1/me/player', {
+    if (!response.ok) {
+        console.error('resume, get playback state');
+        throw Error('cannot get playback state');
+    }
+    return (await response.json())['is_playing'];
+}
+
+async function resume() {
+    if (!(await isPlaying())) {
+        const response = await callApi('https://api.spotify.com/v1/me/player/play', {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${currentToken.accessToken}` },
+        });
+        if (!response.ok) {
+            console.error('cannot resume playback', response, await response.text());
+            throw Error('cannot resume');
+        }
+    }
+    document.getElementById('playBtn').hidden = true;
+    document.getElementById('pauseBtn').hidden = false;
+    document.getElementById('scanBtn').classList.add('animatedPlay');
+}
+
+async function pause() {
+    if (await isPlaying()) {
+        const response = await callApi('https://api.spotify.com/v1/me/player/pause', {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${currentToken.accessToken}`,
-                'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                device_ids: [ device_id ],
-            }),
         });
-        document.getElementById('play').addEventListener('click', play);
-        document.getElementById('pause').addEventListener('click', pause);
-        document.getElementById('scan').addEventListener('click', pause);
-    });
-    window.player.addListener('authentication_error', async () => {
-        window.player.removeListener('authentication_error'); // avoid an infinite loop
-        await refreshToken();
-        window.player.connect();
-    });
-    window.player.connect();
-    window.removeEventListener('gotToken', initPlayer);
-    showScreen('play');
+        if (!response.ok) {
+            console.error('cannot pause playback', response, await response.text());
+            throw Error('cannot pause');
+        }
+    }
+    document.getElementById('playBtn').hidden = false;
+    document.getElementById('pauseBtn').hidden = true;
+    document.getElementById('scanBtn').classList.remove('animatedPlay');
 }
 
-window.onSpotifyWebPlaybackSDKReady = () => {
-    if (currentToken.accessToken === null) {
-        window.addEventListener('gotToken', initPlayer);
-    } else {
-        initPlayer();
+async function reset() {
+    await pause();
+    showScreen('start');
+}
+
+async function getDevices() {
+    const response = await callApi('https://api.spotify.com/v1/me/player/devices', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${currentToken.accessToken}` },
+    });
+    if (!response.ok) {
+        console.error('getDevices():', response, response.text);
+        throw Error('Error fetching devices');
     }
-};
+    return (await response.json())['devices'];
+}
+
+async function initGame() {
+    const devices = await getDevices();
+    for (const device of devices) {
+        const selected = device['is_active'];
+        let option = new Option(
+            `${device['name']} (${device['type']})`,
+            `${device['id']}`,
+            false,
+            selected
+        );
+        if (device['is_restricted']) {
+            option.disabled = true;
+        }
+        deviceList.options.add(option);
+    }
+    showScreen('start');
+}
+
+async function startGame() {
+    await resumeScan();
+}
+
+async function changeDevice(event) {
+    const response = await callApi('https://api.spotify.com/v1/me/player', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentToken.accessToken}`,
+        },
+        body: JSON.stringify({
+            device_ids: [`${event.target.value}`],
+        }),
+    });
+    if (!response.ok) {
+        console.error('changeDevice', response, await response.text());
+    }
+}
+
+function logout() {
+    localStorage.clear();
+    window.location.reload();
+}
 
 document.getElementById('login').addEventListener('click', authorize);
-document.getElementById('scan').addEventListener('click', startScan);
-document.getElementById('closeScan').addEventListener('click', stopScan);
-document.getElementById('logout').addEventListener('click', () => {
-    player.disconnect();
-    localStorage.clear(); 
-    window.location.reload();
-});
+document.getElementById('scanBtn').addEventListener('click', resumeScan);
+document.getElementById('closeScan').addEventListener('click', pauseScan);
+document.getElementById('closePlay').addEventListener('click', reset);
+document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('playBtn').addEventListener('click', resume);
+document.getElementById('pauseBtn').addEventListener('click', pause);
+deviceList.addEventListener('change', changeDevice);
+document.getElementById('logout').addEventListener('click', logout);
 
 (async () => {
     // check if this is an authorization callback
@@ -254,5 +344,12 @@ document.getElementById('logout').addEventListener('click', () => {
         // remove the code from the url for correct refreshing
         const url = new URL(window.location.href);
         window.history.replaceState({}, document.title, url.origin + url.pathname);
+    }
+    // check if we have a (valid) currentToken
+    if (currentToken.accessToken) {
+        if (currentToken.expires <= Date.now()) {
+            await refreshToken();
+        }
+        initGame();
     }
 })();

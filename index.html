@@ -17,18 +17,47 @@
       </button>
       <span id="premium">(Alleen met Spotify Premium)</span>
     </div>
+    <div id="startScreen">
+      <ul>
+        <li>
+          <button id="startBtn">Start</button>
+        </li>
+        <!--
+        <li>
+          <input type="radio" name="cards" value="on" checked>Met kaartjes</input>
+          input type="radio" name="cards" value="off" disabled>
+            Zonder kaartjes
+            <label for="playlist">Kies playlist</label>
+            <select name="playlist" id="playlist"></select>
+          </input>
+        </li>
+        -->
+        <li>
+          <label for="device">Kies apparaat:</label>
+          <select name="device" id="device"></select>
+        </li>
+        <!--<li>
+          <a href="./create.html">Maak nieuwe kaartjes</a>
+        </li>-->
+        <li>
+          <button id="logout">Log uit</button>
+        </li>
+      </ul>
+    </div>
     <div id="scanScreen">
-      <canvas id="playback"></canvas>
+      <video id="playback"></video>
       <button id="closeScan">X</button>
     </div>
     <div id="playScreen">
-      <button id="scan"><img src="qr-scan.svg" alt="Scan QR" height="50"></button>
-      <button id="play" hidden><img src="play.svg" alt="Play" height="80"></button>
-      <button id="pause" class="animatedPlay" hidden><img src="pause.svg" alt="Pause" height="80"></button>
-      <button id="logout">Log Out</button>
+      <button id="scanBtn"><img src="qr-scan.svg" alt="Scan QR" height="50"></button>
+      <button id="playBtn"><img src="play.svg" alt="Play" height="80"></button>
+      <button id="pauseBtn" class="animatedPlay" hidden><img src="pause.svg" alt="Pause" height="80"></button>
+      <button id="closePlay">X</button>
+    </div>
+    <div id="debugArea">
+      <textarea></textarea>
     </div>
 
-    <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <script src="jsQR.js"></script>
     <script src="main.js"></script>
   </body>

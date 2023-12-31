@@ -59,7 +59,8 @@ button {
     display: block;
 }
 
-#closeScan {
+#closeScan,
+#closePlay {
     position: absolute;
     top: 20px;
     right: 20px;
@@ -76,31 +77,31 @@ button {
     display: none;
 }
 
-#scan {
+#scanBtn {
     background-color: #666;
     position: absolute;
     top: 33%;
     left: 50%;
     transform: translate(-50%, -50%);
     border-radius: 500px;
-    width: 200px;
-    height: 200px;
+    width: 25vh;
+    height: 25vh;
     padding: 0;
-    border: 20px solid black;
+    border: 5vh solid black;
 }
 
-#pause,
-#play {
+#pauseBtn ,
+#playBtn {
     position: absolute;
     top: 67%;
     left: 50%;
     transform: translate(-50%, -50%);
     background-color: #999;
     border-radius: 500px;
-    width: 250px;
-    height: 250px;
+    width: 30vh;
+    height: 30vh;
     padding: 0;
-    border: 20px solid black;
+    border: 5vh solid black;
 }
 
 .animatedPlay {
@@ -111,48 +112,41 @@ button {
 
 @keyframes grow {
     from {
-        border-width: 20px;
+        border-width: 5vh;
     }
     20% {
-        border-width: 5px;
+        border-width: 1vh;
         animation-timing-function: ease;
     }
     50% {
-        border-width: 20px;
+        border-width: 5vh;
         animation-timing-function: ease-out;
     }
     60% {
-        border-width: 15px;
+        border-width: 4vh;
         animation-timing-function: linear;
     }
     80% {
-        border-width: 5px;
+        border-width: 2vh;
         animation-timing-function: ease-out;
     }
     to {
-        border-width: 20px;
+        border-width: 5vh;
         animation-timing-function: ease-out;
     }
 }
 
-#play img {
+#playBtn img {
     display: block;
     margin: auto;
     transform: translate(9px, 0);
 }
 
-#pause img {
+#pauseBtn img {
     display: block;
     margin: auto;
 }
 
-#logout {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background-color: #ccc6;
-    color: black;
-    height: 50px;
-    width: 50px;
-    border-radius: 500px;
+#debugArea {
+    display: none;
 }
