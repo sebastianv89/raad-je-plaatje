@@ -343,10 +343,13 @@ deviceList.addEventListener('change', changeDevice);
 document.getElementById('logout').addEventListener('click', logout);
 
 (async () => {
+    const url = new URL(window.location.href);
+
     // install service worker
     if ('serviceWorker' in navigator) {
+        const swPath = url.pathname.replace(/index.html$/, '') + 'service-worker.js';
         try {
-            await navigator.serviceWorker.register('/service-worker.js');
+            await navigator.serviceWorker.register(swPath);
         } catch (error) {
             console.error('sw registration failed', error);
         }
@@ -357,7 +360,6 @@ document.getElementById('logout').addEventListener('click', logout);
     if (code) {
         await newToken(code);
         // remove the code from the url for correct refreshing
-        const url = new URL(window.location.href);
         window.history.replaceState({}, document.title, url.origin + url.pathname);
     }
     // check if we have a (valid) currentToken
