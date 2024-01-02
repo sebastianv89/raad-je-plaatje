@@ -121,7 +121,13 @@ async function authorize() {
         code_challenge_method: 'S256',
         code_challenge: code_challenge,
     }).toString();
-    window.location.href = authUrl.toString();
+    const shareData = { url: authUrl.toString() };
+    if (navigator.canShare && navigator.canShare(shareData)) {
+        console.log('Share');
+        await navigator.share(shareData);
+    } else {
+        window.location.href = authUrl.toString();
+    }
 }
 
 async function callApi(url, obj) {
@@ -351,5 +357,7 @@ document.getElementById('logout').addEventListener('click', logout);
             await refreshToken();
         }
         initGame();
+    } else {
+        showScreen('login');
     }
 })();
