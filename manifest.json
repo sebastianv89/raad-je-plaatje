@@ -1,8 +1,10 @@
 {
     "name": "Raad je Plaatje",
     "icons": [
-        "src": "favicon.svg",
-        "sizes": "any"
+        {
+            "src": "favicon.svg",
+            "sizes": "any"
+        }
     ],
     "start_url": "./index.html",
     "display": "standalone"
