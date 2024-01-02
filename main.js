@@ -343,6 +343,15 @@ deviceList.addEventListener('change', changeDevice);
 document.getElementById('logout').addEventListener('click', logout);
 
 (async () => {
+    // install service worker
+    if ('serviceWorker' in navigator) {
+        try {
+            await navigator.serviceWorker.register('/service-worker.js');
+        } catch (error) {
+            console.error(`sw registration failed with ${error}`);
+        }
+    }
+
     // check if this is an authorization callback
     const code = new URLSearchParams(window.location.search).get('code');
     if (code) {
