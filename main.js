@@ -348,7 +348,7 @@ document.getElementById('logout').addEventListener('click', logout);
         try {
             await navigator.serviceWorker.register('/service-worker.js');
         } catch (error) {
-            console.error(`sw registration failed with ${error}`);
+            console.error('sw registration failed', error);
         }
     }
 
